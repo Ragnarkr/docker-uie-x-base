@@ -1,4 +1,23 @@
-## 环境安装{#install-env-section}
+- [环境安装](#环境安装)
+  - [docker 拉取](#docker-拉取)
+  - [安装必要的包](#安装必要的包)
+  - [生成 requirements.txt](#生成-requirementstxt)
+- [创建后端服务](#创建后端服务)
+  - [主要方法](#主要方法)
+  - [init方法初始化](#init方法初始化)
+  - [predict 预测方法](#predict-预测方法)
+  - [fit 训练方法](#fit-训练方法)
+  - [其他方法](#其他方法)
+  - [本例下完整 model.py 代码](#本例下完整-modelpy-代码)
+  - [报错情况](#报错情况)
+- [使用流程](#使用流程)
+  - [启动 Label-studio 及后端服务 Backend](#启动-label-studio-及后端服务-backend)
+  - [半自动标注及一键训练](#半自动标注及一键训练)
+  - [API 服务](#api-服务)
+
+---
+
+## 环境安装
 
 ### docker 拉取
 
@@ -83,7 +102,7 @@ Requests==2.31.0
 
 ---
 
-## 创建后端服务{#create-backbend-section}
+## 创建后端服务
 
 [label-studio官方文档 Write your own ML backend](https://labelstud.io/guide/ml_create.html)
 
@@ -172,11 +191,9 @@ API_KEY = get_env('API_KEY', "your_api_key")
 <View>
   <Image name="image" value="$image"/>
   <RectangleLabels name="label" toName="image">
-  <Label value="产品名称" background="#FFA39E"/>
-    <Label value="取样点/来自" background="#D4380D"/>
-    <Label value="批号" background="#FFC069"/>
-    <Label value="客户" background="#AD8B00"/>
-      ...
+    <Label value="日期" background="#FFA39E"/>
+    ...
+    <Label value="结论" background="#AD8B00"/>
   </RectangleLabels>
 </View>
 ```
@@ -184,7 +201,18 @@ API_KEY = get_env('API_KEY', "your_api_key")
 标签配置对应的`parsed_label_config`:
 
 ```json
- {'产品名称': {'value': '产品名称', 'background': '#FFA39E'}, '批号': {'value': '批号', 'background': '#FFC069'}, '客户': {'value': '客户', 'background': '#AD8B00'}, '报日期', 'background': '#5CDBD3'}, '检验项目': {'value': '检验项目', 'background': '#096DD9'}, '指标': {'value': '指标', 'background': '#ADC6FF'}, '检验结果': {'value': '检验结果', 'background': 'ue': '结论', 'background': '#FFA39E'}}}}
+{
+  "日期": {
+    "value": "日期",
+    "background": "#FFA39E"
+  },
+  ...
+  "结论": {
+    "value": "结论",
+    "background": "#FFA39E"
+  }
+}
+
 ```
 
 根据需要从 `self.parsed_label_config` 变量中提取需要的信息，并通过 PaddleNLP 的 Taskflow 加载用于预标注的模型。
@@ -219,14 +247,14 @@ class MyModel(LabelStudioMLBase):
   "annotations": [
     {
       "id": 19,
-      "created_username": " 438402849@qq.com, 1",
+      "created_username": "<your_email>, 1",
       "created_ago": "3 weeks, 4 days",
       "completed_by": {
         "id": 1,
         "first_name": "",
         "last_name": "",
         "avatar": null,
-        "email": "438402849@qq.com",
+        "email": "<your_email>",
         "initials": "43"
       }, 
 		"result": [
@@ -241,7 +269,7 @@ class MyModel(LabelStudioMLBase):
             "height": 4.154302670623149,
             "rotation": 0,
             "rectanglelabels": [
-              "检验项目"
+              "日期"
             ]
           },
           "id": "-4WH5hjwCw",
@@ -262,7 +290,7 @@ class MyModel(LabelStudioMLBase):
             "height": 5.687844986000111,
             "rotation": 0,
             "rectanglelabels": [
-              "检验方法"
+              "结论"
             ]
           },
           "id": "pVdPsoR7J5",
@@ -344,13 +372,13 @@ def predict(self, tasks, **kwargs):
         # Append predictions
         predictions.append({
             'result': result,
-            'model_version': 'BOSHLAND V1.0'
+            'model_version': 'uie-model V1.0'
         })
 
     return predictions
 ```
 
-> 这里在写json格式的时候，关于 value 下的 id 是自己随机生成的12位，这块不是很懂，按理说应该是 label-studio 来生成，不懂啊~
+> 这里在写json格式的时候，关于 value 下的 id 是自己随机生成的12位，这块不是很懂，难道不应该该是 label-studio 来生成，不懂啊~
 
 ### fit 训练方法
 
@@ -571,7 +599,7 @@ class NewModel(LabelStudioMLBase):
         }
 ```
 
-> 根据 cpu 或 gpu 平台以及文件目录结构自行调整 finetune.py 中的[参数](#appendix-section)。
+> 根据 cpu 或 gpu 平台以及文件目录结构自行调整 finetune.py 中的[参数](https://github.com/PaddlePaddle/PaddleNLP/tree/develop/applications/information_extraction/document)。
 
 ### 报错情况
 
@@ -602,41 +630,7 @@ class NewModel(LabelStudioMLBase):
 
 ---
 
-## 附录{#appendix-section}
-
-1. [fintune.py 参数详情](https://github.com/PaddlePaddle/PaddleNLP/tree/develop/applications/information_extraction/document)
-   - `device`: 训练设备，可选择 'cpu'、'gpu'、'npu' 其中的一种；默认为 GPU 训练。
-   - `logging_steps`: 训练过程中日志打印的间隔 steps 数，默认10。
-   - `save_steps`: 训练过程中保存模型 checkpoint 的间隔 steps 数，默认100。
-   - `eval_steps`: 训练过程中保存模型 checkpoint 的间隔 steps 数，默认100。
-   - `seed`：全局随机种子，默认为 42。
-   - `model_name_or_path`：进行 few shot 训练使用的预训练模型。默认为 "uie-x-base"。
-   - `output_dir`：必须，模型训练或压缩后保存的模型目录；默认为 `None` 。
-   - `train_path`：训练集路径；默认为 `None` 。
-   - `dev_path`：开发集路径；默认为 `None` 。
-   - `max_seq_len`：文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
-   - `per_device_train_batch_size`:用于训练的每个 GPU 核心/NPU 核心/CPU 的batch大小，默认为8。
-   - `per_device_eval_batch_size`:用于评估的每个 GPU 核心/NPU 核心/CPU 的batch大小，默认为8。
-   - `num_train_epochs`: 训练轮次，使用早停法时可以选择 100；默认为10。
-   - `learning_rate`：训练最大学习率，UIE-X 推荐设置为 1e-5；默认值为3e-5。
-   - `label_names`：训练数据标签label的名称，UIE-X 设置为'start_positions' 'end_positions'；默认值为None。
-   - `do_train`:是否进行微调训练，设置该参数表示进行微调训练，默认不设置。
-   - `do_eval`:是否进行评估，设置该参数表示进行评估，默认不设置。
-   - `do_export`:是否进行导出，设置该参数表示进行静态图导出，默认不设置。
-   - `export_model_dir`:静态图导出地址，默认为None。
-   - `overwrite_output_dir`： 如果 `True`，覆盖输出目录的内容。如果 `output_dir` 指向检查点目录，则使用它继续训练。
-   - `disable_tqdm`： 是否使用tqdm进度条。
-   - `metric_for_best_model`：最优模型指标,UIE-X 推荐设置为 `eval_f1`，默认为None。
-   - `load_best_model_at_end`：训练结束后是否加载最优模型，通常与`metric_for_best_model`配合使用，默认为False。
-   - `save_total_limit`：如果设置次参数，将限制checkpoint的总数。删除旧的checkpoints `输出目录`，默认为None。
-
-
-
 ## 使用流程
-
-### [环境安装](#install-env-section)
-
-### [创建后端 Backbend](#create-backbend-section)
 
 ### 启动 Label-studio 及后端服务 Backend 
 
@@ -660,13 +654,8 @@ label-studio start --port 8080
 
 打开 label-studio 标注网址，本例为中 label-studio： http://0.0.0.0:8080/ 
 
-注册并登录，点击右上角 Account&Settings：
-
-![image-20240118142253008](./assets/image-20240118142253008.png)
-
-记下账户下的 token：
-
-![image-20240118142526926](./assets/image-20240118142526926.png)
+注册并登录，点击右上角 Account&Settings，记下账户下的 token：
+![Alt text](assets/image-20240117164437842.png)
 
 编辑 model.py 中 `API_KEY` 为上边的token：
 
@@ -722,13 +711,9 @@ label-studio-ml start ml_backend --port 9090
 
 打开 label-studio 标注网址，本例为中 label-studio： http://0.0.0.0:8080/   label-stuio-ml： http://0.0.0.0:9090/  
 
-创建 Project，进入后右上角点击 Settings:
+创建 Project，进入后右上角点击 Settings，点击 [Labeling Interface](http://localhost:8081/projects/8/settings/labeling) 创建标签：
 
-![image-20240105175232538](./assets/image-20240105175232538.png)
-
-点击 [Labeling Interface](http://localhost:8081/projects/8/settings/labeling) 创建标签(此处为code添加)：
-
-![image-20240105175315031](./assets/image-20240105175315031.png)
+![image-20240105175315031](./assets/image-20240118202345.png)
 
 **导入数据集：**（很重要）
 
@@ -758,7 +743,7 @@ label-studio-ml start ml_backend --port 9090
 
 点击 [Machine Learning](http://localhost:8081/projects/8/settings/ml) ，点击 Add Model 添加机器学习模型：
 
-![image-20240105175454715](./assets/image-20240105175454715.png)
+![!\[image-20240105175454715\](./assets/image-20240105175454715.png)](assets/image-20240118202813.png)
 
 此处 URL 填写 Backbend 启动的端口号，本例中端口号为 9090 。
 
@@ -771,8 +756,6 @@ label-studio-ml start ml_backend --port 9090
 > cpu 推理时，占用内存约 11G， 训练时 batch=1， epoch=5 约2小时
 
 返回 project 页面，点击某张未标注的图片时会自动进行预测
-
-![image-20240118141408061](./assets/image-20240118141408061.png)
 
 预测成功后会返回结果（如果没有显示则刷新一遍页面），此时只需自行调整标注框，然后点击右下角 submit 或 update 即可实现一键训练。
 
@@ -812,11 +795,9 @@ python run_server.py
 
 + 后端服务：http://127.0.0.1:8082/
 
-+ 预测(支持本地图片、url图片、base64编码)：http://127.0.0.1:8585/v1/models/boshland/predict
++ 预测(支持本地图片、url图片、base64编码)：http://127.0.0.1:8585/v1/models/uie/predict
 
   > 将本地图片利用[图床](https://www.imgtp.com/)转为网络图片进行测试，测试图片为：
-  >
-  > ![test02](./assets/test02.jpg)
   >
   > curl:
   >
@@ -826,65 +807,8 @@ python run_server.py
   >   -H 'accept: application/json' \
   >   -H 'Content-Type: application/json' \
   >   -d '{
-  >     "data": "https://img1.imgtp.com/2024/01/18/nk3qIqgG.jpg"
+  >     "data": "./images/test.jpg"
   >   }'
-  > ```
-  >
-  > Response body:
-  >
-  > ```json
-  > {
-  >   "model_name": "boshland",
-  >   "model_version": "default",
-  >   "data": [
-  >     {
-  >       "header": {
-  >         "产品名称": "20%氢氧化钠",
-  >         "客户": "恺迪苏（重庆）有限公司",
-  >         "批号": "ZY/CQ2209220405",
-  >         "车号": "渝AOH932",
-  >         "规格": "Standard",
-  >         "数量": "30T",
-  >         "报告日期": "2022.09.26",
-  >         "检验人": "焦小杨",
-  >         "审核人": "熊波",
-  >         "结论": "合格"
-  >       },
-  >       "items": [
-  >         {
-  >           "检验项目": "铁（Fe）mg/kg≤",
-  >           "指标": "5",
-  >           "检验结果": "0.12",
-  >           "检验方法": "GB/T629-1997"
-  >         },
-  >         {
-  >           "检验项目": "总碱量（以NaOH计）%",
-  >           "指标": "19.6-20.4",
-  >           "检验结果": "19.96",
-  >           "检验方法": "GB 1886.20-2016"
-  >         },
-  >         {
-  >           "检验项目": "氯化物（以C1计）mg/kg≤",
-  >           "指标": "30",
-  >           "检验结果": "<30",
-  >           "检验方法": "GB/T629-1997"
-  >         },
-  >         {
-  >           "检验项目": "外观",
-  >           "指标": "澄清透明",
-  >           "检验结果": "澄清透明",
-  >           "检验方法": " "
-  >         },
-  >         {
-  >           "检验项目": "重金属（以Pb计）mg/kg≤",
-  >           "指标": "5",
-  >           "检验结果": "0.013",
-  >           "检验方法": "GB 1886.20-2016"
-  >         }
-  >       ],
-  >     }
-  >   ]
-  > }
   > ```
   >
   > 对预测结果返回的 json 文件的后处理代码在 `/home/api.py` 中的 `predict()` 方法中。
