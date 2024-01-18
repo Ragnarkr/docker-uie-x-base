@@ -1,0 +1,8 @@
+label_studio_ml==1.0.9
+numpy==1.21.6
+opencv_contrib_python==4.6.0.66
+opencv_python==4.6.0.66
+paddle_serving_client==0.9.0
+paddlenlp==2.7.1
+paddlepaddle==2.5.0rc0
+Requests==2.31.0
